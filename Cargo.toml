@@ -1,0 +1,10 @@
+[package]
+name = "iron-csrf-middleware"
+version = "0.1.0"
+authors = ["Hajime Fukuda <hajime.fukuda@me.com>"]
+
+[dependencies]
+iron = "^0.6"
+iron-sessionstorage = { version = "^0.6.6", git = "https://github.com/iron/iron-sessionstorage.git" }
+rust-crypto = "0.2"
+params = "^0.8"
