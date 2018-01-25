@@ -43,6 +43,16 @@ impl iron_sessionstorage::Value for CsrfToken {
     }
 }
 
+pub trait CsrfReqExt {
+    fn csrf_token(&mut self) -> String;
+}
+
+impl<'a, 'b> CsrfReqExt for Request<'a, 'b> {
+    fn csrf_token(&mut self) -> String {
+        self.session().get::<CsrfToken>().unwrap().unwrap().0
+    }
+}
+
 /// Iron middleware to check and generate CSRF token.
 pub struct CsrfMiddleware {
   secret: String,
