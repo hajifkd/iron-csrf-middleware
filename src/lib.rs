@@ -1,7 +1,7 @@
+extern crate crypto;
 extern crate iron;
 extern crate iron_sessionstorage;
 extern crate params;
-extern crate crypto;
 
 use std::error::Error;
 use std::fmt::{self, Debug};
@@ -19,20 +19,24 @@ pub struct CsrfToken(pub String);
 pub const QUERY_KEY: &'static str = "_csrf_token";
 
 impl CsrfToken {
-  fn new(secret: &str) -> CsrfToken {
-    let time = std::time::SystemTime::now();
-    let mut hasher = Sha256::new();
+    fn new(secret: &str) -> CsrfToken {
+        let time = std::time::SystemTime::now();
+        let mut hasher = Sha256::new();
 
-    hasher.input_str(&format!("{}{:?}", secret, time));
+        hasher.input_str(&format!("{}{:?}", secret, time));
 
-    CsrfToken(hasher.result_str())
-  }
+        CsrfToken(hasher.result_str())
+    }
 }
 
 impl iron_sessionstorage::Value for CsrfToken {
-    fn get_key() -> &'static str { "_csrf_token" }
-    
-    fn into_raw(self) -> String { self.0 }
+    fn get_key() -> &'static str {
+        "_csrf_token"
+    }
+
+    fn into_raw(self) -> String {
+        self.0
+    }
 
     fn from_raw(value: String) -> Option<Self> {
         if value.is_empty() {
@@ -55,20 +59,20 @@ impl<'a, 'b> CsrfReqExt for Request<'a, 'b> {
 
 /// Iron middleware to check and generate CSRF token.
 pub struct CsrfMiddleware {
-  secret: String,
+    secret: String,
 }
 
 /// Creates a new instance with the given secret.
 impl CsrfMiddleware {
-  pub fn new(secret: &str) -> CsrfMiddleware {
-    CsrfMiddleware {
-      secret: secret.to_owned()
+    pub fn new(secret: &str) -> CsrfMiddleware {
+        CsrfMiddleware {
+            secret: secret.to_owned(),
+        }
     }
-  }
 }
 
 impl typemap::Key for CsrfMiddleware {
-  type Value = CsrfToken;
+    type Value = CsrfToken;
 }
 
 #[derive(Debug)]
@@ -81,36 +85,43 @@ impl fmt::Display for StringError {
 }
 
 impl Error for StringError {
-    fn description(&self) -> &str { &*self.0 }
+    fn description(&self) -> &str {
+        &*self.0
+    }
 }
 
 impl BeforeMiddleware for CsrfMiddleware {
-  fn before(&self, req: &mut Request) -> IronResult<()> {
-    let token = if let Ok(Some(CsrfToken(ref token))) = req.session().get::<CsrfToken>() {
-      token.to_owned()
-    } else {
-      let token = CsrfToken::new(&self.secret);
-      let token_str = token.0.clone();
-      req.session().set::<CsrfToken>(token).unwrap();
-      token_str
-    };
-
-    if req.method != iron::method::Method::Post {
-      Ok(())
-    } else {
-      let params = req.get_ref::<Params>().unwrap();
-      if let Some(&Value::String(ref user_token)) = params.get(QUERY_KEY) {
-        if *user_token == token {
-          Ok(())
+    fn before(&self, req: &mut Request) -> IronResult<()> {
+        let token = if let Ok(Some(CsrfToken(ref token))) = req.session().get::<CsrfToken>() {
+            token.to_owned()
         } else {
-          Err(IronError::new(StringError("Bad token".to_owned()), iron::status::BadRequest))
-        }
-      } else {
-        Err(IronError::new(StringError("No token".to_owned()), iron::status::BadRequest))
-      }
-    }
+            let token = CsrfToken::new(&self.secret);
+            let token_str = token.0.clone();
+            req.session().set::<CsrfToken>(token).unwrap();
+            token_str
+        };
 
-  }
+        if req.method != iron::method::Method::Post {
+            Ok(())
+        } else {
+            let params = req.get_ref::<Params>().unwrap();
+            if let Some(&Value::String(ref user_token)) = params.get(QUERY_KEY) {
+                if *user_token == token {
+                    Ok(())
+                } else {
+                    Err(IronError::new(
+                        StringError("Bad token".to_owned()),
+                        iron::status::BadRequest,
+                    ))
+                }
+            } else {
+                Err(IronError::new(
+                    StringError("No token".to_owned()),
+                    iron::status::BadRequest,
+                ))
+            }
+        }
+    }
 }
 
 #[cfg(test)]
