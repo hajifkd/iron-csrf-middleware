@@ -75,17 +75,6 @@ fn handler_html(req: &mut ::iron::Request) -> IronResult<()> {
         </body></html>", csrf_token, query_key)
     )))
 }
-
-fn handler_json(req: &mut ::iron::Request) -> IronResult<()> {
-    let csrf_token: String = req.csrf_token();
-    let query_key = ::iron_csrf_middleware::QUERY_KEY;
-
-    Ok(Response::with((
-        ::iron::headers::ContentType::json().0,
-        status::Ok,
-        format!("{ \"{}\": \"{}\" }", query_key, csrf_token)
-    )))
-}
 ```
 
 For an example, please see [this](https://github.com/hajifkd/iron-diesel-scaffold).
